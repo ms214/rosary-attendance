@@ -28,16 +28,20 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // 유효한 토큰이면 getClaims()로 로컬 검증만 하고(네트워크 없음), 토큰이 없거나
-  // 만료됐을 때만 getUser()로 네트워크 리프레시한다(자동 로그인 유지).
+  // 세션을 쿠키에서 로컬로 읽고(네트워크 없음), 토큰이 만료 임박일 때만 네트워크 리프레시한다.
   // → 로그인 상태의 매 요청마다 발생하던 인증서버 왕복을 제거해 페이지 이동을 빠르게 한다.
-  const { data: claims } = await supabase.auth.getClaims();
-  let authed = !!claims?.claims?.sub;
-  if (!authed) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    authed = !!user;
+  //   데이터 보안은 Supabase가 쿼리 시 JWT를 검증(RLS)하므로 유지된다.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  let authed = !!session?.user;
+  if (session) {
+    const expiresInMs = (session.expires_at ?? 0) * 1000 - Date.now();
+    if (expiresInMs < 60_000) {
+      // 만료 1분 전 이내 → 리프레시 토큰으로 갱신(쿠키 갱신 포함)
+      const { data } = await supabase.auth.refreshSession();
+      authed = !!data.session;
+    }
   }
 
   const path = request.nextUrl.pathname;

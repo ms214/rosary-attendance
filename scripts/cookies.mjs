@@ -1,0 +1,15 @@
+import { chromium } from "playwright";
+const BASE = "https://rosary-eight.vercel.app";
+const b = await chromium.launch();
+const ctx = await b.newContext();
+const p = await ctx.newPage();
+await p.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+await p.getByPlaceholder(/이름/).fill("김민수");
+await p.getByPlaceholder(/세례명/).fill("브루노");
+await p.getByPlaceholder(/PIN/).fill("0214");
+await p.getByRole("button", { name: "로그인" }).click();
+await p.waitForURL((u) => new URL(u).pathname === "/", { timeout: 15000 });
+const cookies = await ctx.cookies();
+const header = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+console.log(header);
+await b.close();

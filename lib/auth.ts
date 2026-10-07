@@ -4,13 +4,17 @@ import type { Profile } from "@/lib/types";
 
 /**
  * 현재 사용자 id를 반환한다.
- * getClaims()는 JWT를 (JWKS로) 로컬 검증하므로 네트워크 왕복이 없다 — getUser()보다 빠르다.
+ * 쿠키에서 세션을 로컬로 읽기만 한다(네트워크 왕복 없음). 서명 검증은 하지 않지만,
+ * 미들웨어가 게이트를 담당하고 실제 데이터는 Supabase가 쿼리 시점에 JWT를 검증(RLS)하므로
+ * 위조 쿠키로는 타인 데이터를 읽을 수 없다.
  * 미로그인 시 /login 으로 이동.
  */
 export async function getUserId(): Promise<string> {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const uid = data?.claims?.sub;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const uid = session?.user?.id;
   if (!uid) redirect("/login");
   return uid;
 }
