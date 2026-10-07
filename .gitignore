@@ -39,6 +39,9 @@ yarn-error.log*
 /scripts/shots/
 /test-results/
 
+# Claude Code 개인 설정
+.claude/settings.local.json
+
 # vercel
 .vercel
 

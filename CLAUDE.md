@@ -24,9 +24,10 @@ npm start       # 빌드 결과 실행
 ## 필수 외부 설정 (이게 없으면 로그인/업로드가 동작하지 않음)
 
 1. **환경변수**: `cp .env.local.example .env.local` 후 Supabase URL / anon key 입력.
-2. **DB 스키마**: `supabase/migrations/0001_init.sql` → `0002_login_list.sql` 순으로
+2. **DB 스키마**: `supabase/migrations/` 의 `0001` → `0002` → `0003` → `0004` 를 번호순으로
    Supabase SQL Editor에서 실행. 테이블·RLS·`is_teacher()`·Storage 정책(0001),
-   로그인 명단용 `list_students()` RPC(0002).
+   role 자가승격 차단 트리거(0003). ※ 0002는 명단 RPC를 추가했다가 0004에서 제거하므로
+   새로 세팅한다면 0002는 건너뛰어도 무방.
 3. **이메일 확인 끄기**: Authentication → Sign In / Providers → Email 에서
    **"Confirm email" 비활성화**. (로그인은 합성 이메일 기반이라 확인 메일을 받을 수 없음 —
    켜져 있으면 가입 후 세션이 발급되지 않아 로그인 불가)
@@ -46,9 +47,9 @@ Next.js 16 (App Router) + React 19 + Tailwind v4 + Supabase(Postgres/Auth/Storag
     (가입·로그인 양쪽에서 **동일하게** 계산되어야 하므로 이 함수가 유일한 진실원)
   - `pinToPassword(pin)` = PIN을 Supabase 최소 길이(6) 이상의 비밀번호로 변환
 - `app/signup/page.tsx` — 이름/세례명/나이/PIN 입력 → `auth.signUp` → `profiles` upsert (한 화면에서 완료).
-- `app/login/page.tsx` — `list_students()` RPC로 명단을 받아 이름 선택 → PIN 입력 →
-  합성 이메일/비밀번호로 `signInWithPassword`. 둘 다 **Client Component**(브라우저 클라이언트가
-  세션을 쿠키에 저장 → 서버/proxy가 읽음).
+- `app/login/page.tsx` — **이름·세례명·PIN 직접 입력**(명단 노출 없음) → 합성 이메일/비밀번호로
+  `signInWithPassword`. 둘 다 **Client Component**(브라우저 클라이언트가 세션을 쿠키에 저장 →
+  서버/proxy가 읽음). ※ 과거의 `list_students()` 공개 RPC는 프라이버시 때문에 제거됨(0004).
 - **세션 유지(자동 로그인)**는 `proxy.ts`(구 middleware) → `lib/supabase/middleware.ts`의
   `updateSession()`이 매 요청마다 `getUser()`로 토큰을 갱신하면서 이뤄진다.
   미로그인 사용자는 `/login`으로 리다이렉트(`PUBLIC_PATHS` = `/login`, `/signup` 제외).
