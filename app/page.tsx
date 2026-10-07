@@ -1,27 +1,37 @@
 import Link from "next/link";
-import { requireProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getUserId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todaysMystery } from "@/lib/rosary";
 import { seoulToday } from "@/lib/date";
+import type { Profile } from "@/lib/types";
 import { signOut } from "./actions";
 
 export default async function Home() {
-  const profile = await requireProfile();
+  const uid = await getUserId();
   const today = seoulToday();
   const mystery = todaysMystery();
 
   const supabase = await createClient();
-  const { data: todayAttendance } = await supabase
-    .from("attendances")
-    .select("id")
-    .eq("student_id", profile.id)
-    .eq("attend_date", today)
-    .maybeSingle();
+  // 프로필·오늘출석·총개수를 한 번에 병렬 조회 (직렬 왕복 제거)
+  const [profileRes, todayRes, countRes] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
+    supabase
+      .from("attendances")
+      .select("id")
+      .eq("student_id", uid)
+      .eq("attend_date", today)
+      .maybeSingle(),
+    supabase
+      .from("attendances")
+      .select("id", { count: "exact", head: true })
+      .eq("student_id", uid),
+  ]);
 
-  const { count } = await supabase
-    .from("attendances")
-    .select("id", { count: "exact", head: true })
-    .eq("student_id", profile.id);
+  const profile = profileRes.data as Profile | null;
+  if (!profile) redirect("/login");
+  const todayAttendance = todayRes.data;
+  const count = countRes.count;
 
   const done = !!todayAttendance;
   const prettyDate = formatKoreanDate(today);

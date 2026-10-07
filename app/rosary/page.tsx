@@ -25,7 +25,7 @@ export default function RosaryPage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 py-8">
+    <div className="flex min-h-[calc(100dvh-5rem)] flex-col px-6 py-8">
       {/* 신비 선택 */}
       <div className="mb-4 grid grid-cols-4 gap-1.5">
         {Object.values(MYSTERIES).map((m) => (

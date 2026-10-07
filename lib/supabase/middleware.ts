@@ -28,17 +28,24 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // getUser()를 호출해 만료된 토큰을 자동 갱신한다(자동 로그인 유지의 핵심).
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 유효한 토큰이면 getClaims()로 로컬 검증만 하고(네트워크 없음), 토큰이 없거나
+  // 만료됐을 때만 getUser()로 네트워크 리프레시한다(자동 로그인 유지).
+  // → 로그인 상태의 매 요청마다 발생하던 인증서버 왕복을 제거해 페이지 이동을 빠르게 한다.
+  const { data: claims } = await supabase.auth.getClaims();
+  let authed = !!claims?.claims?.sub;
+  if (!authed) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    authed = !!user;
+  }
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some(
     (p) => path === p || path.startsWith(p + "/"),
   );
 
-  if (!user && !isPublic) {
+  if (!authed && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

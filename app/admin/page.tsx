@@ -14,19 +14,21 @@ export default async function AdminPage() {
 
   const supabase = await createClient();
 
-  const { data: studentRows } = await supabase
-    .from("profiles")
-    .select("id, name, baptismal_name, age, role, created_at")
-    .eq("role", "student")
-    .order("name");
-  const students = (studentRows ?? []) as Profile[];
-
-  const { data: attRows } = await supabase
-    .from("attendances")
-    .select("student_id, attend_date, photo_path")
-    .gte("attend_date", `${year}-${mm}-01`)
-    .lte("attend_date", `${year}-${mm}-${total}`);
-  const attendances = attRows ?? [];
+  // 학생 목록·출석을 병렬 조회
+  const [studentRes, attRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, name, baptismal_name, age, role, created_at")
+      .eq("role", "student")
+      .order("name"),
+    supabase
+      .from("attendances")
+      .select("student_id, attend_date, photo_path")
+      .gte("attend_date", `${year}-${mm}-01`)
+      .lte("attend_date", `${year}-${mm}-${total}`),
+  ]);
+  const students = (studentRes.data ?? []) as Profile[];
+  const attendances = attRes.data ?? [];
 
   // 서명 URL 일괄 생성
   const urlByPath = new Map<string, string>();

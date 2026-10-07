@@ -3,26 +3,32 @@ import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
 /**
+ * 현재 사용자 id를 반환한다.
+ * getClaims()는 JWT를 (JWKS로) 로컬 검증하므로 네트워크 왕복이 없다 — getUser()보다 빠르다.
+ * 미로그인 시 /login 으로 이동.
+ */
+export async function getUserId(): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const uid = data?.claims?.sub;
+  if (!uid) redirect("/login");
+  return uid;
+}
+
+/**
  * 현재 로그인한 사용자의 프로필을 반환한다.
  * - 미로그인 또는 프로필 없음: /login 으로 이동
- *   (프로필은 가입 시 함께 생성되므로 정상 흐름에선 항상 존재한다)
  */
 export async function requireProfile(): Promise<Profile> {
+  const uid = await getUserId();
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("id", uid)
     .maybeSingle();
 
   if (!profile) redirect("/login");
-
   return profile as Profile;
 }
 

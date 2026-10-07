@@ -1,9 +1,9 @@
-import { requireProfile } from "@/lib/auth";
+import { getUserId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { seoulToday, daysInMonth, dayOfMonth } from "@/lib/date";
 
 export default async function CalendarPage() {
-  const profile = await requireProfile();
+  const uid = await getUserId();
   const today = seoulToday();
   const [year, month] = today.split("-").map(Number); // month: 1~12
   const todayDay = dayOfMonth(today);
@@ -16,7 +16,7 @@ export default async function CalendarPage() {
   const { data: rows } = await supabase
     .from("attendances")
     .select("attend_date, photo_path")
-    .eq("student_id", profile.id)
+    .eq("student_id", uid)
     .gte("attend_date", monthStart)
     .lte("attend_date", monthEnd);
 

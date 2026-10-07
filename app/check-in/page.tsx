@@ -1,18 +1,18 @@
 import Link from "next/link";
-import { requireProfile } from "@/lib/auth";
+import { getUserId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { seoulToday } from "@/lib/date";
 import Uploader from "./Uploader";
 
 export default async function CheckInPage() {
-  const profile = await requireProfile();
+  const uid = await getUserId();
   const today = seoulToday();
 
   const supabase = await createClient();
   const { data: attendance } = await supabase
     .from("attendances")
     .select("photo_path")
-    .eq("student_id", profile.id)
+    .eq("student_id", uid)
     .eq("attend_date", today)
     .maybeSingle();
 
