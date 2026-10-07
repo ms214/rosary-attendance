@@ -35,8 +35,8 @@ yarn-error.log*
 .env*
 !.env.local.example
 
-# playwright/e2e 산출물
-/scripts/shots/
+# 로컬 테스트/진단 스크립트 및 산출물 (저장소에 포함하지 않음)
+/scripts/
 /test-results/
 
 # Claude Code 개인 설정
