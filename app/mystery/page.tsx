@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { requireProfile } from "@/lib/auth";
+import { getUserId } from "@/lib/auth";
 import { MYSTERIES, todaysMystery } from "@/lib/rosary";
 
 export default async function MysteryPage() {
-  await requireProfile();
+  await getUserId(); // 로그인 가드만 (프로필 데이터 불필요)
   const today = todaysMystery();
 
   return (
