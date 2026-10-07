@@ -1,0 +1,57 @@
+import Link from "next/link";
+import { requireProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { seoulToday } from "@/lib/date";
+import Uploader from "./Uploader";
+
+export default async function CheckInPage() {
+  const profile = await requireProfile();
+  const today = seoulToday();
+
+  const supabase = await createClient();
+  const { data: attendance } = await supabase
+    .from("attendances")
+    .select("photo_path")
+    .eq("student_id", profile.id)
+    .eq("attend_date", today)
+    .maybeSingle();
+
+  let photoUrl: string | null = null;
+  if (attendance) {
+    const { data } = await supabase.storage
+      .from("attendance-photos")
+      .createSignedUrl(attendance.photo_path, 60 * 60);
+    photoUrl = data?.signedUrl ?? null;
+  }
+
+  return (
+    <div className="px-6 py-8">
+      <h1 className="mb-1 text-xl font-bold">오늘의 출석</h1>
+      <p className="mb-6 text-sm text-gray-500">
+        묵주기도 후 인증샷을 올리면 출석 완료!
+      </p>
+
+      {attendance ? (
+        <div className="space-y-5">
+          <div className="overflow-hidden rounded-2xl border border-primary-soft">
+            {photoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photoUrl} alt="오늘의 인증샷" className="w-full" />
+            )}
+          </div>
+          <div className="rounded-xl bg-primary-soft p-4 text-center font-semibold text-primary">
+            ✅ 오늘 출석 완료! 🙏
+          </div>
+          <Link
+            href="/calendar"
+            className="block text-center text-sm text-primary underline"
+          >
+            출석 도장판 보기 →
+          </Link>
+        </div>
+      ) : (
+        <Uploader />
+      )}
+    </div>
+  );
+}
