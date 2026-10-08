@@ -42,7 +42,7 @@ export default async function Home() {
         <div>
           <p className="text-sm text-gray-400">{prettyDate}</p>
           <h1 className="text-xl font-bold">
-            {profile.baptismal_name} {profile.name}님
+            {profile.name} {profile.baptismal_name}님
           </h1>
         </div>
         <form action={signOut}>

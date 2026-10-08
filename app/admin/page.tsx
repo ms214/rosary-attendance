@@ -106,7 +106,7 @@ export default async function AdminPage() {
                 return (
                   <tr key={s.id} className="border-t border-primary-soft">
                     <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-3 py-2 text-left font-medium">
-                      {s.baptismal_name} {s.name}
+                      {s.name} {s.baptismal_name}
                     </td>
                     <td className="px-2 py-2 font-bold text-primary">{count}</td>
                     {days.map((d) => {
