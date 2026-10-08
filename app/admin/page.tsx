@@ -23,34 +23,36 @@ export default async function AdminPage() {
       .order("name"),
     supabase
       .from("attendances")
-      .select("student_id, attend_date, photo_path")
+      .select("student_id, attend_date, method, photo_path")
       .gte("attend_date", `${year}-${mm}-01`)
       .lte("attend_date", `${year}-${mm}-${total}`),
   ]);
   const students = (studentRes.data ?? []) as Profile[];
   const attendances = attRes.data ?? [];
 
-  // 서명 URL 일괄 생성
+  // 서명 URL 일괄 생성 (묵주기도 출석은 사진이 없으므로 제외)
   const urlByPath = new Map<string, string>();
-  if (attendances.length > 0) {
+  const photoPaths = attendances
+    .map((a) => a.photo_path)
+    .filter((p): p is string => !!p);
+  if (photoPaths.length > 0) {
     const { data: signed } = await supabase.storage
       .from("attendance-photos")
-      .createSignedUrls(
-        attendances.map((a) => a.photo_path),
-        60 * 60,
-      );
+      .createSignedUrls(photoPaths, 60 * 60);
     for (const s of signed ?? []) {
       if (s.signedUrl) urlByPath.set(s.path!, s.signedUrl);
     }
   }
 
-  // student_id → (day → photoUrl)
-  const byStudent = new Map<string, Map<number, string>>();
+  // student_id → (day → 출석 정보)
+  type Cell = { rosary: boolean; url?: string };
+  const byStudent = new Map<string, Map<number, Cell>>();
   for (const a of attendances) {
     if (!byStudent.has(a.student_id)) byStudent.set(a.student_id, new Map());
-    byStudent
-      .get(a.student_id)!
-      .set(dayOfMonth(a.attend_date), urlByPath.get(a.photo_path) ?? "");
+    byStudent.get(a.student_id)!.set(dayOfMonth(a.attend_date), {
+      rosary: a.method === "rosary",
+      url: a.photo_path ? urlByPath.get(a.photo_path) : undefined,
+    });
   }
 
   const todayCount = students.filter((s) =>
@@ -108,13 +110,14 @@ export default async function AdminPage() {
                     </td>
                     <td className="px-2 py-2 font-bold text-primary">{count}</td>
                     {days.map((d) => {
-                      const url = dayMap?.get(d);
-                      const attended = dayMap?.has(d);
+                      const cell = dayMap?.get(d);
                       return (
                         <td key={d} className="px-1 py-2">
-                          {attended ? (
-                            url ? (
-                              <a href={url} target="_blank" rel="noreferrer">
+                          {cell ? (
+                            cell.rosary ? (
+                              "📿"
+                            ) : cell.url ? (
+                              <a href={cell.url} target="_blank" rel="noreferrer">
                                 🙏
                               </a>
                             ) : (
@@ -134,7 +137,7 @@ export default async function AdminPage() {
         </div>
       )}
       <p className="mt-3 text-xs text-gray-400">
-        🙏 를 탭하면 인증샷을 볼 수 있어요. 가로로 스크롤하면 날짜별로 확인할 수 있어요.
+        🙏 사진 출석(탭하면 인증샷) · 📿 가상 묵주기도 출석. 가로로 스크롤하면 날짜별로 확인할 수 있어요.
       </p>
     </div>
   );

@@ -15,7 +15,7 @@ export default async function CalendarPage() {
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from("attendances")
-    .select("attend_date, photo_path")
+    .select("attend_date, method, photo_path")
     .eq("student_id", uid)
     .gte("attend_date", monthStart)
     .lte("attend_date", monthEnd);
@@ -23,25 +23,31 @@ export default async function CalendarPage() {
   const attendances = rows ?? [];
 
   // 썸네일용 서명 URL 일괄 생성
+  // (묵주기도 출석은 사진이 없으므로 제외)
   const thumbByDay = new Map<number, string>();
-  if (attendances.length > 0) {
+  const photoPaths = attendances
+    .map((a) => a.photo_path)
+    .filter((p): p is string => !!p);
+  if (photoPaths.length > 0) {
     const { data: signed } = await supabase.storage
       .from("attendance-photos")
-      .createSignedUrls(
-        attendances.map((a) => a.photo_path),
-        60 * 60,
-      );
+      .createSignedUrls(photoPaths, 60 * 60);
     const urlByPath = new Map(
       (signed ?? []).map((s) => [s.path, s.signedUrl]),
     );
     for (const a of attendances) {
-      const url = urlByPath.get(a.photo_path);
+      const url = a.photo_path ? urlByPath.get(a.photo_path) : undefined;
       if (url) thumbByDay.set(dayOfMonth(a.attend_date), url);
     }
   }
 
   const attendedDays = new Set(
     attendances.map((a) => dayOfMonth(a.attend_date)),
+  );
+  const rosaryDays = new Set(
+    attendances
+      .filter((a) => a.method === "rosary")
+      .map((a) => dayOfMonth(a.attend_date)),
   );
 
   // 달력 그리드 구성 (1일의 요일만큼 앞쪽 공백)
@@ -103,7 +109,7 @@ export default async function CalendarPage() {
                     : ""
                 }`}
               >
-                {attended ? "🙏" : d}
+                {attended ? (rosaryDays.has(d) ? "📿" : "🙏") : d}
               </span>
             </div>
           );
