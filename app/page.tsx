@@ -18,7 +18,7 @@ export default async function Home() {
     supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
     supabase
       .from("attendances")
-      .select("id")
+      .select("method")
       .eq("student_id", uid)
       .eq("attend_date", today)
       .maybeSingle(),
@@ -61,15 +61,44 @@ export default async function Home() {
           {done ? "출석 완료! 🙏" : "아직 전이에요"}
         </p>
         {!done && (
-          <Link
-            href="/check-in"
-            className="mt-4 inline-block rounded-xl bg-white px-5 py-2.5 font-semibold text-primary"
-          >
-            📷 인증샷 올리기
-          </Link>
+          <>
+            <p className="mt-1 text-sm opacity-90">
+              둘 중 편한 방법으로 출석할 수 있어요
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Link
+                href="/check-in"
+                className="rounded-xl bg-white p-3 text-center text-primary"
+              >
+                <span className="block text-2xl">📷</span>
+                <span className="mt-1 block text-sm font-semibold">
+                  인증샷 올리기
+                </span>
+                <span className="mt-0.5 block text-[11px] text-gray-500">
+                  기도 후 사진 한 장
+                </span>
+              </Link>
+              <Link
+                href="/rosary"
+                className="rounded-xl bg-white p-3 text-center text-primary"
+              >
+                <span className="block text-2xl">📿</span>
+                <span className="mt-1 block text-sm font-semibold">
+                  가상 묵주로 기도
+                </span>
+                <span className="mt-0.5 block text-[11px] text-gray-500">
+                  끝까지 마치면 출석
+                </span>
+              </Link>
+            </div>
+          </>
         )}
         {done && (
-          <p className="mt-2 text-sm opacity-90">오늘도 묵주기도 바쳤어요.</p>
+          <p className="mt-2 text-sm opacity-90">
+            {todayAttendance?.method === "rosary"
+              ? "가상 묵주로 오늘의 묵주기도를 마쳤어요 📿"
+              : "오늘도 묵주기도 바쳤어요."}
+          </p>
         )}
       </section>
 
