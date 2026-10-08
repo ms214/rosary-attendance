@@ -9,10 +9,13 @@ export interface Profile {
   created_at: string;
 }
 
+export type AttendanceMethod = "photo" | "rosary";
+
 export interface Attendance {
   id: string;
   student_id: string;
   attend_date: string; // YYYY-MM-DD
-  photo_path: string;
+  method: AttendanceMethod;
+  photo_path: string | null; // 묵주기도 출석은 사진 없음
   created_at: string;
 }

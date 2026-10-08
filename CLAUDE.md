@@ -24,9 +24,9 @@ npm start       # 빌드 결과 실행
 ## 필수 외부 설정 (이게 없으면 로그인/업로드가 동작하지 않음)
 
 1. **환경변수**: `cp .env.local.example .env.local` 후 Supabase URL / anon key 입력.
-2. **DB 스키마**: `supabase/migrations/` 의 `0001` → `0002` → `0003` → `0004` 를 번호순으로
+2. **DB 스키마**: `supabase/migrations/` 의 `0001` → … → `0005` 를 번호순으로
    Supabase SQL Editor에서 실행. 테이블·RLS·`is_teacher()`·Storage 정책(0001),
-   role 자가승격 차단 트리거(0003). ※ 0002는 명단 RPC를 추가했다가 0004에서 제거하므로
+   role 자가승격 차단 트리거(0003), 출석 방식 `method` 컬럼(0005). ※ 0002는 명단 RPC를 추가했다가 0004에서 제거하므로
    새로 세팅한다면 0002는 건너뛰어도 무방.
 3. **이메일 확인 끄기**: Authentication → Sign In / Providers → Email 에서
    **"Confirm email" 비활성화**. (로그인은 합성 이메일 기반이라 확인 메일을 받을 수 없음 —
@@ -68,7 +68,11 @@ Next.js 16 (App Router) + React 19 + Tailwind v4 + Supabase(Postgres/Auth/Storag
 ### 데이터 & 권한 모델
 
 - `profiles`(= auth.users 1:1): name, baptismal_name, age, role.
-- `attendances`: `UNIQUE(student_id, attend_date)` → **하루 1건**. 업로드 시 즉시 자동 인정.
+- `attendances`: `UNIQUE(student_id, attend_date)` → **하루 1건**. 즉시 자동 인정.
+  `method`는 `'photo'`(사진 업로드, `photo_path` 필수) 또는 `'rosary'`(가상 묵주기도 완주, 사진 없음).
+  묵주기도 완주(`app/rosary/actions.ts`)는 `ignoreDuplicates`로 넣어 **이미 있는 사진 출석을 덮어쓰지 않고**,
+  사진 업로드는 upsert라 묵주기도 출석을 사진 출석으로 바꾼다. `photo_path`가 null일 수 있으니
+  서명 URL 생성 전에 걸러낼 것.
 - Storage 버킷 `attendance-photos`(비공개). **파일 경로 규칙은 `${auth.uid()}/${날짜}.ext`** —
   RLS(storage.objects)와 `createSignedUrl(s)` 조회가 이 규칙에 의존하므로 바꾸면 정책도 바꿔야 함.
 - RLS: 학생은 본인 데이터만, 교사(`is_teacher()`)는 전체 조회. 사진 표시는 서명 URL 사용.

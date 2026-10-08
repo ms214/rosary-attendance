@@ -1,18 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import {
   MYSTERIES,
   todaysMystery,
   buildRosarySteps,
   type MysteryKey,
 } from "@/lib/rosary";
+import { completeRosary, type CompleteResult } from "./actions";
 
 export default function RosaryPage() {
   const [mysteryKey, setMysteryKey] = useState<MysteryKey>(
     () => todaysMystery().key,
   );
   const [index, setIndex] = useState(0);
+  const [result, setResult] = useState<CompleteResult | null>(null);
+  const [finishing, startFinishing] = useTransition();
 
   const mystery = MYSTERIES[mysteryKey];
   const steps = useMemo(() => buildRosarySteps(mystery), [mystery]);
@@ -22,6 +26,40 @@ export default function RosaryPage() {
   function selectMystery(k: MysteryKey) {
     setMysteryKey(k);
     setIndex(0);
+    setResult(null);
+  }
+
+  function finish() {
+    startFinishing(async () => setResult(await completeRosary()));
+  }
+
+  function restart() {
+    setIndex(0);
+    setResult(null);
+  }
+
+  // ── 기도를 마치고 출석 처리된 화면 ──
+  if (result?.ok) {
+    return (
+      <div className="flex min-h-[calc(100dvh-5rem)] flex-col items-center justify-center gap-4 px-8 text-center">
+        <div className="text-6xl">🙏</div>
+        <h1 className="text-xl font-bold text-primary">묵주기도를 마쳤어요</h1>
+        <p className="text-sm text-gray-500">
+          {result.alreadyDone
+            ? "오늘은 이미 출석이 완료돼 있어요."
+            : "오늘 출석이 완료됐어요."}
+        </p>
+        <Link
+          href="/"
+          className="mt-4 w-full max-w-xs rounded-xl bg-primary py-3.5 font-semibold text-white"
+        >
+          홈으로
+        </Link>
+        <button onClick={restart} className="text-sm text-gray-400 underline">
+          처음부터 다시 기도하기
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -99,13 +137,17 @@ export default function RosaryPage() {
           </button>
         ) : (
           <button
-            onClick={() => setIndex(0)}
-            className="flex-[2] rounded-xl bg-primary py-3.5 font-semibold text-white"
+            onClick={finish}
+            disabled={finishing}
+            className="flex-[2] rounded-xl bg-primary py-3.5 font-semibold text-white disabled:opacity-50"
           >
-            🙏 기도 마치기 (처음으로)
+            {finishing ? "출석 처리 중…" : "🙏 기도 마치고 출석하기"}
           </button>
         )}
       </div>
+      {result && !result.ok && (
+        <p className="mt-3 text-center text-sm text-red-500">{result.error}</p>
+      )}
     </div>
   );
 }

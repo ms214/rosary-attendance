@@ -40,6 +40,7 @@ export async function uploadAttendance(
     {
       student_id: user.id,
       attend_date: today,
+      method: "photo",
       photo_path: path,
     },
     { onConflict: "student_id,attend_date" },
