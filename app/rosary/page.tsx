@@ -63,7 +63,7 @@ export default function RosaryPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-5rem)] flex-col px-6 py-8">
+    <div className="flex h-[calc(100dvh-5rem)] flex-col px-6 py-8">
       {/* 신비 선택 */}
       <div className="mb-4 grid grid-cols-4 gap-1.5">
         {Object.values(MYSTERIES).map((m) => (
@@ -105,17 +105,25 @@ export default function RosaryPage() {
         isLarge={step.bead !== "small"}
       />
 
-      {/* 기도문 카드 */}
-      <div className="my-6 flex-1 rounded-2xl bg-white p-6 shadow-sm">
+      {/* 기도문 카드 — 긴 기도문(사도신경 등)은 카드 안에서만 스크롤, 단계가 바뀌면 맨 위부터 */}
+      <div
+        key={index}
+        className="my-6 min-h-0 flex-1 overflow-y-auto rounded-2xl bg-white p-6 shadow-sm"
+      >
         <p
           className="mb-3 text-center text-sm font-bold"
           style={{ color: mystery.color }}
         >
           {step.title}
         </p>
-        <p className="text-center text-lg leading-relaxed text-gray-800 whitespace-pre-line">
+        <p className="text-center text-[17px] leading-8 text-balance text-gray-800 whitespace-pre-line">
           {step.text}
         </p>
+        {/* 내용이 넘칠 때 아래쪽을 흐리게 해서 스크롤할 내용이 더 있음을 알림 */}
+        <div
+          aria-hidden
+          className="pointer-events-none sticky bottom-0 -mb-6 h-12 bg-gradient-to-t from-white to-transparent"
+        />
       </div>
 
       {/* 이동 버튼 */}
