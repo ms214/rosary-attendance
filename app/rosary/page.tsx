@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   MYSTERIES,
@@ -63,7 +63,7 @@ export default function RosaryPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-5rem)] flex-col px-6 py-8">
+    <div className="flex h-[calc(100dvh-5rem)] flex-col px-6 py-8">
       {/* 신비 선택 */}
       <div className="mb-4 grid grid-cols-4 gap-1.5">
         {Object.values(MYSTERIES).map((m) => (
@@ -105,18 +105,18 @@ export default function RosaryPage() {
         isLarge={step.bead !== "small"}
       />
 
-      {/* 기도문 카드 */}
-      <div className="my-6 flex-1 rounded-2xl bg-white p-6 shadow-sm">
+      {/* 기도문 카드 — 단계가 바뀌면(key) 새로 그려져 스크롤이 맨 위부터 시작 */}
+      <PrayerCard key={index}>
         <p
           className="mb-3 text-center text-sm font-bold"
           style={{ color: mystery.color }}
         >
           {step.title}
         </p>
-        <p className="text-center text-lg leading-relaxed text-gray-800 whitespace-pre-line">
+        <p className="text-center text-[17px] leading-8 text-balance text-gray-800 whitespace-pre-line">
           {step.text}
         </p>
-      </div>
+      </PrayerCard>
 
       {/* 이동 버튼 */}
       <div className="flex gap-3">
@@ -148,6 +148,47 @@ export default function RosaryPage() {
       {result && !result.ok && (
         <p className="mt-3 text-center text-sm text-red-500">{result.error}</p>
       )}
+    </div>
+  );
+}
+
+/**
+ * 긴 기도문(사도신경 등)은 카드 안에서만 스크롤한다.
+ * 아래에 내용이 더 남아 있을 때만 카드 하단 가장자리를 흐리게 해서 스크롤할 수 있음을 알린다.
+ * (흐림은 스크롤 영역 바깥에 겹쳐 카드 맨 아래에 정확히 붙인다 — 안쪽 여백 때문에 글자 위에 띠가 생기지 않게)
+ */
+function PrayerCard({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () =>
+      setMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    el.addEventListener("scroll", update, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  return (
+    <div className="relative my-6 min-h-0 flex-1">
+      <div
+        ref={ref}
+        className="h-full overflow-y-auto rounded-2xl bg-white p-6 shadow-sm"
+      >
+        {children}
+      </div>
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 rounded-b-2xl bg-gradient-to-t from-white to-transparent transition-opacity ${
+          moreBelow ? "opacity-100" : "opacity-0"
+        }`}
+      />
     </div>
   );
 }
