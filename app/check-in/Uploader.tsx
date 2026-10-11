@@ -2,7 +2,27 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { compressImage } from "@/lib/image";
 import { uploadAttendance, type UploadResult } from "./actions";
+
+// next.config.ts 의 serverActions.bodySizeLimit(4mb)보다 약간 작게 — 넘으면 서버가 에러 페이지를 띄운다
+const MAX_UPLOAD_BYTES = 3.9 * 1024 * 1024;
+
+/** 사진을 줄인 뒤 서버 액션으로 보낸다. */
+async function compressAndUpload(
+  prev: UploadResult | null,
+  formData: FormData,
+): Promise<UploadResult> {
+  const file = formData.get("photo");
+  if (file instanceof File && file.size > 0) {
+    const small = await compressImage(file);
+    if (small.size > MAX_UPLOAD_BYTES) {
+      return { ok: false, error: "사진 용량이 너무 커요. 다른 사진으로 시도해 주세요." };
+    }
+    formData.set("photo", small);
+  }
+  return uploadAttendance(prev, formData);
+}
 
 export default function Uploader() {
   const router = useRouter();
@@ -11,7 +31,7 @@ export default function Uploader() {
   const [state, formAction, pending] = useActionState<
     UploadResult | null,
     FormData
-  >(uploadAttendance, null);
+  >(compressAndUpload, null);
 
   useEffect(() => {
     // 업로드 성공 → 서버 상태(출석 완료 화면) 반영을 위해 새로고침
